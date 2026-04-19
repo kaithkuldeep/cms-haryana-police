@@ -36,7 +36,8 @@ const { Option } = Select;
 export default function SearchPage() {
   const { token } = useAuth();
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebounce(query, 500);
+  const queryRef = React.useRef(query);
+  useEffect(() => { queryRef.current = query; }, [query]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [language, setLanguage] = useState(null);
@@ -105,10 +106,11 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Trigger search when debounced query OR filters change
+  // Trigger search when filters change (not on every keystroke)
   useEffect(() => {
-    executeSearch(debouncedQuery, filters);
-  }, [debouncedQuery, filters, executeSearch]);
+    executeSearch(queryRef.current, filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, executeSearch]);
 
   // Convenience wrapper for SmartSearch component callbacks
   const handleSearch = React.useCallback((searchQuery) => {
@@ -159,19 +161,17 @@ export default function SearchPage() {
         </Title>
         <Paragraph style={{ fontSize: '18px', color: '#a6adb4' }}>
           Securely search across all FIRs, Complaints, and Police Records
-          <br />
-          <Text style={{ fontSize: '15px', color: '#1890ff', fontWeight: '500' }}>सभी FIR, शिकायत और पुलिस रिकॉर्ड को आसानी से खोजें</Text>
         </Paragraph>
       </div>
 
       <Card bordered={false} className="search-control-card" style={{ borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', marginBottom: '32px' }}>
         <SmartSearch onSearch={handleSearch} onValueChange={setQuery} initialValue={query} />
         
-        <Divider plain><Text type="secondary" style={{ fontSize: '12px' }}>Filters / फ़िल्टर</Text></Divider>
+        <Divider plain><Text type="secondary" style={{ fontSize: '12px' }}>Filters</Text></Divider>
         
         <Space wrap size="middle" style={{ width: '100%', justifyContent: 'center' }}>
           <Select 
-            placeholder="Case Type / अपराध का प्रकार" 
+            placeholder="Case Type" 
             style={{ width: 240 }} 
             allowClear
             showSearch
@@ -180,35 +180,35 @@ export default function SearchPage() {
             onChange={(val) => setFilters({ ...filters, caseType: val })}
             size="large"
           >
-            <Option value="Theft">Theft / चोरी</Option>
-            <Option value="Assault">Assault / मारपीट</Option>
-            <Option value="Fraud">Fraud / धोखाधड़ी</Option>
-            <Option value="Burglary">Burglary / सेंधमारी</Option>
-            <Option value="Murder">Murder / हत्या</Option>
-            <Option value="Attempt to Murder">Attempt to Murder / हत्या का प्रयास</Option>
-            <Option value="Robbery">Robbery / डकैती</Option>
-            <Option value="Kidnapping">Kidnapping / अपहरण</Option>
-            <Option value="Rape">Rape / बलात्कार</Option>
-            <Option value="Eve Teasing">Eve Teasing / छेड़छाड़</Option>
-            <Option value="Domestic Violence">Domestic Violence / घरेलू हिंसा</Option>
-            <Option value="Dowry Case">Dowry Case / दहेज प्रताड़ना</Option>
-            <Option value="Acid Attack">Acid Attack / तेजाब हमला</Option>
-            <Option value="Cybercrime">Cybercrime / साइबर अपराध</Option>
-            <Option value="Drug Trafficking">Drug Trafficking / नशा तस्करी</Option>
-            <Option value="Land Dispute">Land Dispute / जमीन विवाद</Option>
-            <Option value="Missing Person">Missing Person / गुमशुदा</Option>
-            <Option value="Traffic Accident">Traffic Accident / एक्सीडेंट</Option>
-            <Option value="Extortion">Extortion / रंगदारी (वसूली)</Option>
-            <Option value="Arson">Arson / आगजनी</Option>
-            <Option value="Arms Act">Arms Act / हथियार अधिनियम</Option>
-            <Option value="Corruption">Corruption / भ्रष्टाचार</Option>
-            <Option value="Smuggling">Smuggling / तस्करी</Option>
-            <Option value="Child Abuse">Child Abuse / बाल शोषण</Option>
-            <Option value="Other">Other / अन्य</Option>
+            <Option value="Theft">Theft</Option>
+            <Option value="Assault">Assault</Option>
+            <Option value="Fraud">Fraud</Option>
+            <Option value="Burglary">Burglary</Option>
+            <Option value="Murder">Murder</Option>
+            <Option value="Attempt to Murder">Attempt to Murder</Option>
+            <Option value="Robbery">Robbery</Option>
+            <Option value="Kidnapping">Kidnapping</Option>
+            <Option value="Rape">Rape</Option>
+            <Option value="Eve Teasing">Eve Teasing</Option>
+            <Option value="Domestic Violence">Domestic Violence</Option>
+            <Option value="Dowry Case">Dowry Case</Option>
+            <Option value="Acid Attack">Acid Attack</Option>
+            <Option value="Cybercrime">Cybercrime</Option>
+            <Option value="Drug Trafficking">Drug Trafficking</Option>
+            <Option value="Land Dispute">Land Dispute</Option>
+            <Option value="Missing Person">Missing Person</Option>
+            <Option value="Traffic Accident">Traffic Accident</Option>
+            <Option value="Extortion">Extortion</Option>
+            <Option value="Arson">Arson</Option>
+            <Option value="Arms Act">Arms Act</Option>
+            <Option value="Corruption">Corruption</Option>
+            <Option value="Smuggling">Smuggling</Option>
+            <Option value="Child Abuse">Child Abuse</Option>
+            <Option value="Other">Other</Option>
           </Select>
 
           <Select 
-            placeholder="District / जिला चुनें" 
+            placeholder="District" 
             style={{ width: 220 }} 
             allowClear
             showSearch
@@ -217,33 +217,33 @@ export default function SearchPage() {
             onChange={(val) => setFilters({ ...filters, district: val })}
             size="large"
           >
-            <Option value="Ambala">Ambala / अंबाला</Option>
-            <Option value="Bhiwani">Bhiwani / भिवानी</Option>
-            <Option value="Charkhi Dadri">Charkhi Dadri / चरखी दादरी</Option>
-            <Option value="Faridabad">Faridabad / फरीदाबाद</Option>
-            <Option value="Fatehabad">Fatehabad / फतेहाबाद</Option>
-            <Option value="Gurugram">Gurugram / गुरुग्राम</Option>
-            <Option value="Hisar">Hisar / हिसार</Option>
-            <Option value="Hansi">Hansi / हांसी</Option>
-            <Option value="Jhajjar">Jhajjar / झज्जर</Option>
-            <Option value="Jind">Jind / जींद</Option>
-            <Option value="Kaithal">Kaithal / कैथल</Option>
-            <Option value="Karnal">Karnal / करनाल</Option>
-            <Option value="Kurukshetra">Kurukshetra / कुरुक्षेत्र</Option>
-            <Option value="Mahendragarh">Mahendragarh / महेंद्रगढ़</Option>
-            <Option value="Mewat">Mewat / मेवात (नूहं)</Option>
-            <Option value="Palwal">Palwal / पलवल</Option>
-            <Option value="Panchkula">Panchkula / पंचकुला</Option>
-            <Option value="Panipat">Panipat / पानीपत</Option>
-            <Option value="Rewari">Rewari / रेवाड़ी</Option>
-            <Option value="Rohtak">Rohtak / रोहतक</Option>
-            <Option value="Sirsa">Sirsa / सिरसा</Option>
-            <Option value="Sonipat">Sonipat / सोनीपत</Option>
-            <Option value="Yamunanagar">Yamunanagar / यमुनानगर</Option>
+            <Option value="Ambala">Ambala</Option>
+            <Option value="Bhiwani">Bhiwani</Option>
+            <Option value="Charkhi Dadri">Charkhi Dadri</Option>
+            <Option value="Faridabad">Faridabad</Option>
+            <Option value="Fatehabad">Fatehabad</Option>
+            <Option value="Gurugram">Gurugram</Option>
+            <Option value="Hisar">Hisar</Option>
+            <Option value="Hansi">Hansi</Option>
+            <Option value="Jhajjar">Jhajjar</Option>
+            <Option value="Jind">Jind</Option>
+            <Option value="Kaithal">Kaithal</Option>
+            <Option value="Karnal">Karnal</Option>
+            <Option value="Kurukshetra">Kurukshetra</Option>
+            <Option value="Mahendragarh">Mahendragarh</Option>
+            <Option value="Mewat">Mewat</Option>
+            <Option value="Palwal">Palwal</Option>
+            <Option value="Panchkula">Panchkula</Option>
+            <Option value="Panipat">Panipat</Option>
+            <Option value="Rewari">Rewari</Option>
+            <Option value="Rohtak">Rohtak</Option>
+            <Option value="Sirsa">Sirsa</Option>
+            <Option value="Sonipat">Sonipat</Option>
+            <Option value="Yamunanagar">Yamunanagar</Option>
           </Select>
 
           <DatePicker 
-            placeholder="From Date / इस तारीख से" 
+            placeholder="From Date" 
             size="large"
             format="DD/MM/YYYY"
             value={filters.dateAfter ? dayjs(filters.dateAfter) : null}
@@ -260,7 +260,7 @@ export default function SearchPage() {
               }}
               style={{ fontWeight: '500' }}
             >
-              Clear Filters / साफ़ करें
+              Clear Filters
             </Button>
           )}
         </Space>
@@ -278,13 +278,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {language && (
-        <div style={{ marginTop: '16px', textAlign: 'center' }}>
-          <Tag icon={<InfoCircleOutlined />} color="blue" style={{ borderRadius: '12px', padding: '4px 12px' }}>
-            Detected: {language.toUpperCase()}
-          </Tag>
-        </div>
-      )}
+
 
       {/* Smooth Loading Indicator */}
       {loading && (
@@ -403,11 +397,9 @@ export default function SearchPage() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <div style={{ textAlign: 'center' }}>
-                  <Title level={4} style={{ color: '#ff4d4f' }}>⚠️ Server Error / सर्वर त्रुटि</Title>
+                  <Title level={4} style={{ color: '#ff4d4f' }}>⚠️ Server Error</Title>
                   <Text type="secondary" style={{ fontSize: '15px' }}>
-                    सर्वर से जानकारी प्राप्त करने में तकनीकी समस्या आ रही है। कृपया बैकएंड सर्वर (पोर्ट 3001) की जाँच करें या कुछ समय बाद पुनः प्रयास करें। 
-                    <br/><br/>
-                    (Technical issue fetching records from the server. Please ensure the backend is running or try again later.)
+                    Technical issue fetching records from the server. Please ensure the backend is running or try again later.
                   </Text>
                   {/* Keep technical details hidden in console or shown softly for devs */}
                   <div style={{ display: 'none' }}>Technical Info: {searchError}</div>
@@ -419,11 +411,11 @@ export default function SearchPage() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <div style={{ textAlign: 'center' }}>
-                  <Title level={4}>कोई रिकॉर्ड नहीं मिला (No records found)</Title>
+                  <Title level={4}>No records found</Title>
                   <Text type="secondary">
                     {filters.caseType || filters.district
-                      ? `"${[filters.caseType, filters.district].filter(Boolean).join(' + ')}" के लिए कोई रिकॉर्ड नहीं मिला।`
-                      : 'कृपया वर्तनी (spelling) की जाँच करें या अन्य शब्दों का उपयोग करें।'
+                      ? `No records found for "${[filters.caseType, filters.district].filter(Boolean).join(' + ')}".`
+                      : 'Please check the spelling or try different keywords.'
                     }
                   </Text>
                 </div>
@@ -447,7 +439,7 @@ export default function SearchPage() {
         onCancel={() => setIsModalVisible(false)}
         footer={[
           <Button key="close" type="primary" onClick={() => setIsModalVisible(false)} style={{ borderRadius: '8px', minWidth: '120px' }}>
-            Close / बंद करें
+            Close
           </Button>
         ]}
         width={800}
@@ -457,35 +449,35 @@ export default function SearchPage() {
         {selectedCase && (
           <div style={{ padding: '20px 0' }}>
             <Card bordered={false} style={{ background: '#f0f5ff', marginBottom: '24px', borderRadius: '12px', borderLeft: '4px solid #1890ff' }}>
-              <Title level={5} style={{ marginBottom: '12px' }}><InfoCircleOutlined /> Incident Description / घटना का विवरण</Title>
+              <Title level={5} style={{ marginBottom: '12px' }}><InfoCircleOutlined /> Incident Description</Title>
               <Paragraph style={{ fontSize: '16px', lineHeight: '1.6', color: '#434343' }}>
                 {selectedCase.description}
               </Paragraph>
             </Card>
 
             <Descriptions bordered column={{ xs: 1, sm: 2 }} className="detail-descriptions">
-              <Descriptions.Item label={<Text strong><UserOutlined /> Complainant (शिकायतकर्ता)</Text>} span={2}>
+              <Descriptions.Item label={<Text strong><UserOutlined /> Complainant</Text>} span={2}>
                 <Text strong style={{ fontSize: '16px' }}>{selectedCase.complainant_name}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><UserOutlined /> Accused (आरोपी)</Text>}>
+              <Descriptions.Item label={<Text strong><UserOutlined /> Accused</Text>}>
                 {selectedCase.accused_name || <Text type="secondary">N/A</Text>}
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><UserOutlined /> Victim (पीड़ित)</Text>}>
+              <Descriptions.Item label={<Text strong><UserOutlined /> Victim</Text>}>
                 {selectedCase.victim_name || <Text type="secondary">N/A</Text>}
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><TagOutlined /> Crime Type (अपराध का प्रकार)</Text>}>
+              <Descriptions.Item label={<Text strong><TagOutlined /> Crime Type</Text>}>
                 <Tag color="volcano">{selectedCase.incident_type}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><CalendarOutlined /> Incident Date (तारीख)</Text>}>
+              <Descriptions.Item label={<Text strong><CalendarOutlined /> Incident Date</Text>}>
                 {dayjs(selectedCase.incident_date).format('DD MMMM YYYY')}
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><EnvironmentOutlined /> District (जिला)</Text>}>
+              <Descriptions.Item label={<Text strong><EnvironmentOutlined /> District</Text>}>
                 {selectedCase.district}
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><EnvironmentOutlined /> Location (स्थान)</Text>}>
+              <Descriptions.Item label={<Text strong><EnvironmentOutlined /> Location</Text>}>
                 {selectedCase.location}
               </Descriptions.Item>
-              <Descriptions.Item label={<Text strong><PhoneOutlined /> Contact (संपर्क)</Text>} span={2}>
+              <Descriptions.Item label={<Text strong><PhoneOutlined /> Contact</Text>} span={2}>
                 {selectedCase.contact_number ? (
                   <Button type="link" onClick={() => handleCall(selectedCase.contact_number)} style={{ padding: 0, height: 'auto', fontSize: '16px' }}>
                     <PhoneOutlined /> {selectedCase.contact_number}

@@ -31,9 +31,8 @@ const { Search } = Input;
 export default function SmartSearch({ onSearch, onValueChange, initialValue = "" }) {
   const { token } = useAuth();
   const [value, setValue] = useState(initialValue);
-  const [options, setOptions] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const [voiceLang, setVoiceLang] = useState(sessionStorage.getItem('voiceSearchLang') || 'hi-IN');
+  const [voiceLang, setVoiceLang] = useState('en-US');
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const recognitionRef = useRef(null);
@@ -77,7 +76,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
 
       recognitionRef.current.onstart = () => {
         setIsListening(true);
-        message.info('Hindi ya English me bol sakte hain...');
+        message.info('You can speak now...');
       };
 
       recognitionRef.current.onerror = (event) => {
@@ -86,7 +85,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
         if (event.error === 'not-allowed') {
           message.error('Microphone access denied. Please allow it in settings.');
         } else {
-          message.error('Voice samajh nahi aayi, dubara try kare');
+          message.error('Voice not recognized, please try again.');
         }
       };
 
@@ -111,37 +110,6 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
     }
   };
 
-  const handleLangChange = (lang) => {
-    setVoiceLang(lang);
-    sessionStorage.setItem('voiceSearchLang', lang);
-    message.success(`Voice search language set to ${lang === 'hi-IN' ? 'Hindi' : 'English'}`);
-
-    // If currently listening, we need to restart with new language
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setTimeout(() => {
-        recognitionRef.current.lang = lang;
-        recognitionRef.current.start();
-      }, 500);
-    }
-  };
-
-
-  const handleSearchSuggestions = async (searchText) => {
-    if (!searchText || searchText.length < 2) {
-      setOptions([]);
-      return;
-    }
-    try {
-      const res = await fetch(`http://localhost:3001/api/search/suggestions?q=${encodeURIComponent(searchText)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setOptions(data.map(val => ({ value: val })));
-    } catch (err) {
-      console.error('Error fetching suggestions:', err);
-    }
-  };
 
   // ----- Helper: render one PDF page to canvas and return dataURL -----
   const renderPdfPageToCanvas = (page, scale = 2.0) => {
@@ -175,7 +143,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
 
     // --- PDF handling ---
     if (file.type === 'application/pdf') {
-      message.loading({ content: 'PDF load ho raha hai, please wait... / पीडीएफ लोड हो रही है...', key: 'ocr', duration: 0 });
+      message.loading({ content: 'Processing PDF, please wait...', key: 'ocr', duration: 0 });
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
@@ -191,7 +159,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
 
         const combined = allText.join('\n\n');
         if (!combined.trim()) {
-          message.warning({ content: 'PDF mein koi text nahi mila. / पीडीएफ में कोई लेख नहीं मिला।', key: 'ocr', duration: 5 });
+          message.warning({ content: 'No readable text found in PDF.', key: 'ocr', duration: 5 });
         } else {
           setValue(combined);
           if (onValueChange) onValueChange(combined);
@@ -200,9 +168,9 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
       } catch (err) {
         console.error('PDF OCR Error:', err);
         if (err.message && err.message.includes('worker')) {
-          message.error({ content: 'PDF Worker error. Browser refresh karein aur dobara try karein.', key: 'ocr', duration: 6 });
+          message.error({ content: 'PDF Worker error. Please refresh your browser and try again.', key: 'ocr', duration: 6 });
         } else {
-          message.error({ content: `PDF process nahi ho saka: ${err.message || 'Unknown error'}`, key: 'ocr', duration: 6 });
+          message.error({ content: `Failed to process PDF: ${err.message || 'Unknown error'}`, key: 'ocr', duration: 6 });
         }
       } finally {
         setIsOcrLoading(false);
@@ -245,33 +213,26 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
   return (
     <div className="smart-search-container" style={{ width: '100%', marginBottom: '20px' }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: '#f0f2f5', padding: '16px', borderRadius: '16px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
-        <AutoComplete
-          options={options}
-          onSearch={handleSearchSuggestions}
-          onSelect={(val) => { setValue(val); onSearch(val); }}
-          value={value}
-          onChange={(val) => {
-            setValue(val);
-            if (onValueChange) onValueChange(val);
-          }}
-          style={{ flexGrow: 1 }}
-        >
           <Search
             placeholder="Search by FIR No, Name, Mobile, or Vehicle Number..."
             enterButton={
               <Button type="primary" size="large" icon={<SearchOutlined />} style={{ borderRadius: '0 12px 12px 0', height: '50px', background: '#1890ff' }}>
-                खोजें (Search)
+                Search
               </Button>
             }
             size="large"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              if (onValueChange) onValueChange(e.target.value);
+            }}
             onSearch={(val) => onSearch(val)}
             allowClear={{ clearIcon: <DeleteOutlined /> }}
-            style={{ borderRadius: '12px' }}
+            style={{ borderRadius: '12px', flexGrow: 1 }}
           />
-        </AutoComplete>
 
         <Space size="middle">
-          <Tooltip title="Scan Image or PDF to Search / फोटो या पीडीएफ स्कैन करके खोजें">
+          <Tooltip title="Scan Image or PDF to Search">
             <Upload
               accept="image/*,.pdf"
               showUploadList={false}
@@ -296,7 +257,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
             </Upload>
           </Tooltip>
 
-          <Tooltip title={isListening ? "सुनना बंद करें (Stop Listening)" : "आवाज़ से खोजें (Voice Search)"}>
+          <Tooltip title={isListening ? "Stop Listening" : "Voice Search"}>
             <Button
               shape="circle"
               size="large"
@@ -319,27 +280,7 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
             />
           </Tooltip>
 
-          <Dropdown
-            menu={{
-              items: [
-                { label: '🇮🇳 Hindi', key: 'hi-IN', icon: <TranslationOutlined /> },
-                { label: '🌐 English', key: 'en-US', icon: <GlobalOutlined /> }
-              ],
-              onClick: ({ key }) => handleLangChange(key),
-              selectable: true,
-              selectedKeys: [voiceLang]
-            }}
-            trigger={['click']}
-          >
-            <Button size="large" style={{ borderRadius: '12px', height: '50px', minWidth: '100px', fontWeight: 500 }}>
-              <Space>
-                {voiceLang === 'hi-IN' ? 'हिन्दी' : 'English'}
-                <DownOutlined style={{ fontSize: '10px' }} />
-              </Space>
-            </Button>
-          </Dropdown>
-
-          <Tooltip title="Help Guide / सहायता">
+          <Tooltip title="Help Guide">
             <Button
               shape="circle"
               size="large"
@@ -363,9 +304,9 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
         <div style={{ marginTop: '12px', padding: '12px', background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: '8px', textAlign: 'center' }}>
           <Space direction="vertical" size={2}>
             <Text strong style={{ color: '#f5222d', fontSize: '16px' }}>
-              <LoadingOutlined /> सुन रहे हैं... ({voiceLang === 'hi-IN' ? 'हिंदी' : 'English'})
+              <LoadingOutlined /> Listening...
             </Text>
-            <Text type="secondary" style={{ color: '#8c8c8c' }}>आप हिंदी या अंग्रेजी में बोल सकते हैं</Text>
+            <Text type="secondary" style={{ color: '#8c8c8c' }}>Speak your query clearly</Text>
             {value && <div style={{ marginTop: '8px', padding: '8px', background: '#fff', borderRadius: '6px', border: '1px dashed #d9d9d9' }}>
               <Text italic>"{value}"</Text>
             </div>}
@@ -375,13 +316,13 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
 
       {/* Training Mode / Help Modal */}
       <Modal
-        title={<Title level={4} style={{ margin: 0 }}><InfoCircleOutlined style={{ color: '#1890ff', marginRight: '8px' }} /> How to search? / खोज कैसे करें?</Title>}
+        title={<Title level={4} style={{ margin: 0 }}><InfoCircleOutlined style={{ color: '#1890ff', marginRight: '8px' }} /> How to search?</Title>}
         open={showHelp}
         onOk={() => setShowHelp(false)}
         onCancel={() => setShowHelp(false)}
         footer={[
           <Button key="ok" type="primary" size="large" onClick={() => setShowHelp(false)} style={{ borderRadius: '8px', minWidth: '150px' }}>
-            I Understand / समझ गया
+            I Understand
           </Button>
         ]}
         width={600}
@@ -392,33 +333,33 @@ export default function SmartSearch({ onSearch, onValueChange, initialValue = ""
           current={-1}
           items={[
             {
-              title: 'लिखकर खोजें (Type & Search)',
-              description: 'सर्च बार में FIR नंबर, नाम, मोबाइल या गाड़ी नंबर लिखें।',
+              title: 'Type & Search',
+              description: 'Type FIR number, name, mobile or vehicle number in the search bar.',
               icon: <SearchOutlined />
             },
             {
-              title: 'आवाज़ से खोजें (Voice Search)',
-              description: 'माइक आइकन पर क्लिक करें और हिंदी या अंग्रेजी में बोलें।',
+              title: 'Voice Search',
+              description: 'Click the mic icon and speak your query.',
               icon: <AudioOutlined />
             },
             {
-              title: 'दस्तावेज़ स्कैन (OCR Scan)',
-              description: 'कैमरा आइकन से FIR की फोटो या PDF अपलोड करके खोजें।',
+              title: 'OCR Scan',
+              description: 'Upload a photo or PDF of the FIR to search automatically.',
               icon: <CameraOutlined />
             },
             {
-              title: 'फिल्टर का उपयोग (Filters)',
-              description: 'जिला या अपराध का प्रकार चुनकर सटीक परिणाम पाएँ।',
+              title: 'Use Filters',
+              description: 'Select District or Case Type to narrow down your results.',
               icon: <DownOutlined />
             }
           ]}
         />
         <Card size="small" style={{ marginTop: '16px', background: '#e6f7ff' }}>
-          <Text strong>उदाहरण (Examples):</Text>
+          <Text strong>Examples:</Text>
           <ul>
-            <li>"FIR-2026-001 खोजें"</li>
-            <li>"गुरुग्राम में चोरी के मामले दिखाओ"</li>
-            <li>"संदीप नाम से सर्च करें"</li>
+            <li>"FIR-2026-001"</li>
+            <li>"Theft cases in Gurugram"</li>
+            <li>"Search for Sandeep"</li>
           </ul>
         </Card>
       </Modal>
