@@ -4,6 +4,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
 import analysisRouter from './routes/analysis.js';
+import gdRouter from './routes/gd.js';
 
 const app = express();
 const PORT = 3000;
@@ -48,6 +49,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 
 // ── Analysis Router (protected) ────────────────────────────────────────────────
 app.use('/api/analysis', authenticateToken, analysisRouter);
+app.use('/api/gd', authenticateToken, gdRouter);
 
 // ── Health check ───────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({

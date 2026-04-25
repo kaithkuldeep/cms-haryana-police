@@ -424,3 +424,27 @@ function buildRuleBasedContradictions(documents) {
 
   return contradictions;
 }
+
+// ── Export: Suggest GD Subject (Groq) ─────────────────────────────────────────
+export async function suggestGDSubjectAI(description) {
+  if (!description || description.length < 10) return { subject: "" };
+  const systemPrompt = "You are a professional police clerk. Based on the diary entry description, suggest a concise, professional subject (max 8 words) in English. Response should be JUST the subject text.";
+  try {
+    const subject = await groqGenerate(systemPrompt, description, 40);
+    return { subject: subject.replace(/["']/g, "").trim(), method: 'groq' };
+  } catch (e) {
+    return { subject: description.slice(0, 50) + "...", method: 'fallback' };
+  }
+}
+
+// ── Export: Polish GD Description (Groq) ──────────────────────────────────────
+export async function polishGDDescriptionAI(description) {
+  if (!description || description.length < 10) return { polished: description };
+  const systemPrompt = "You are a senior officer polishing a General Diary entry. Improve the grammar, clarity, and professionalism of this police entry while PRESERVING ALL FACTS AND HINDI TERMS. Keep it concise. Respond ONLY with the polished text.";
+  try {
+    const polished = await groqGenerate(systemPrompt, description, 1024);
+    return { polished: polished.trim(), method: 'groq' };
+  } catch (e) {
+    return { polished: description, method: 'fallback' };
+  }
+}

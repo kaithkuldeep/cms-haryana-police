@@ -6,6 +6,7 @@ import AppShell from './components/Layout/AppShell';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AnalysisPage from './pages/Analysis/AnalysisPage';
+import GDPage from './pages/GD/GDPage';
 
 // Module Placeholders
 const Placeholder = ({ title }) => (
@@ -32,7 +33,7 @@ export default function App() {
               <Route path="/analysis" element={<AnalysisPage />} />
               <Route path="/search" element={<Placeholder title="M6: Smart Search" />} />
               <Route path="/crime-map" element={<Placeholder title="M7: Preventive Policing" />} />
-              <Route path="/gd" element={<Placeholder title="M8: Smart GD" />} />
+              <Route path="/gd" element={<GDPage />} />
               <Route path="*" element={<Placeholder title="Page Not Found" />} />
             </Route>
           </Route>

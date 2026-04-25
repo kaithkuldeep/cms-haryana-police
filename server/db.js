@@ -158,21 +158,68 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (case_id) REFERENCES cases(id)
   );
+
+  CREATE TABLE IF NOT EXISTS general_diary (
+    id TEXT PRIMARY KEY,
+    gd_number TEXT UNIQUE NOT NULL,
+    date_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    entry_type TEXT NOT NULL,
+    person_name TEXT,
+    mobile_number TEXT,
+    subject TEXT,
+    description TEXT NOT NULL,
+    location TEXT,
+    officer_name TEXT,
+    officer_id TEXT,
+    station_id TEXT,
+    related_fir_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (officer_id) REFERENCES profiles(id)
+  );
+
 `);
+
+  // Add subject column if it doesn't exist (for existing databases)
+  const gdTableInfo = db.prepare("PRAGMA table_info(general_diary)").all();
+  if (!gdTableInfo.some(col => col.name === 'subject')) {
+    db.exec("ALTER TABLE general_diary ADD COLUMN subject TEXT"); 
+    console.log('✅ Added missing "subject" column to general_diary table.');
+  }
+
+  // Add staff status columns to profiles
+  const profilesTableInfo = db.prepare("PRAGMA table_info(profiles)").all();
+  if (!profilesTableInfo.some(col => col.name === 'phone_number')) {
+    db.exec("ALTER TABLE profiles ADD COLUMN phone_number TEXT");
+  }
+  if (!profilesTableInfo.some(col => col.name === 'current_duty')) {
+    db.exec("ALTER TABLE profiles ADD COLUMN current_duty TEXT DEFAULT 'Station Duty'");
+  }
+  if (!profilesTableInfo.some(col => col.name === 'duty_location')) {
+    db.exec("ALTER TABLE profiles ADD COLUMN duty_location TEXT DEFAULT 'Police Station'");
+  }
+
 
 // ─── Seed profiles ────────────────────────────────────────────────────────────
 const profileCount = db.prepare('SELECT COUNT(*) as c FROM profiles').get().c;
 if (profileCount === 0) {
-  const insertProfile = db.prepare(`
-    INSERT INTO profiles (id, username, password, role, full_name, badge_number, rank, station_id)
-    VALUES (@id, @username, @password, @role, @full_name, @badge_number, @rank, @station_id)
-  `);
   const seedProfiles = [
-    { id: 'usr-1', username: 'admin', password: 'admin123', role: 'admin', full_name: 'Test Admin', badge_number: 'ADM-001', rank: 'SP', station_id: 'hq' },
-    { id: 'usr-2', username: 'io_1', password: 'io123', role: 'io', full_name: 'Investigating Officer Singh', badge_number: 'IO-101', rank: 'SI', station_id: 'stn-1' },
-    { id: 'usr-3', username: 'sho_1', password: 'sho123', role: 'sho', full_name: 'SHO Kumar', badge_number: 'SHO-201', rank: 'Inspector', station_id: 'stn-1' },
+    { id: 'usr-1', username: 'admin', password: 'admin123', role: 'admin', full_name: 'Sandeep Singh', badge_number: 'ADM-001', rank: 'SP', station_id: 'hq', phone_number: '9812000001', current_duty: 'HQ Monitoring', duty_location: 'Headquarters' },
+    { id: 'usr-2', username: 'io_1', password: 'io123', role: 'io', full_name: 'SI Rajesh Singh', badge_number: 'IO-101', rank: 'SI', station_id: 'stn-1', phone_number: '9812000002', current_duty: 'Investigation', duty_location: 'Sector 14' },
+    { id: 'usr-3', username: 'sho_1', password: 'sho123', role: 'sho', full_name: 'Inspector Sunil Kumar', badge_number: 'SHO-201', rank: 'Inspector', station_id: 'stn-1', phone_number: '9812000003', current_duty: 'Station Duty', duty_location: 'PS Sector 14' },
+    { id: 'usr-4', username: 'staff_1', password: 'password', role: 'constable', full_name: 'Constable Rahul Phogat', badge_number: 'C-301', rank: 'Constable', station_id: 'stn-1', phone_number: '9812000004', current_duty: 'Raid', duty_location: 'Hansi Road' },
+    { id: 'usr-5', username: 'staff_2', password: 'password', role: 'constable', full_name: 'Constable Vikas Yadav', badge_number: 'C-302', rank: 'Constable', station_id: 'stn-1', phone_number: '9812000005', current_duty: 'CL', duty_location: 'Home' },
+    { id: 'usr-6', username: 'staff_3', password: 'password', role: 'head_constable', full_name: 'HC Meena Kumari', badge_number: 'HC-303', rank: 'Head Constable', station_id: 'stn-1', phone_number: '9812000006', current_duty: 'Station Duty', duty_location: 'Desk' },
+    { id: 'usr-7', username: 'staff_4', password: 'password', role: 'io', full_name: 'ASI Baljeet Singh', badge_number: 'IO-304', rank: 'ASI', station_id: 'stn-1', phone_number: '9812000007', current_duty: 'Raid', duty_location: 'Jind Road' },
+    { id: 'usr-8', username: 'staff_5', password: 'password', role: 'constable', full_name: 'Constable Sanjay Nain', badge_number: 'C-305', rank: 'Constable', station_id: 'stn-1', phone_number: '9812000008', current_duty: 'Patrol', duty_location: 'Market' },
   ];
-  db.transaction((rows) => rows.forEach(r => insertProfile.run(r)))(seedProfiles);
+  
+  const insertProfileComplex = db.prepare(`
+    INSERT INTO profiles (id, username, password, role, full_name, badge_number, rank, station_id, phone_number, current_duty, duty_location)
+    VALUES (@id, @username, @password, @role, @full_name, @badge_number, @rank, @station_id, @phone_number, @current_duty, @duty_location)
+  `);
+  
+  db.transaction((rows) => rows.forEach(r => insertProfileComplex.run(r)))(seedProfiles);
   console.log('✅ Seed profiles created.');
 }
 
@@ -466,6 +513,26 @@ if (bankCount === 0) {
   db.transaction(rows => rows.forEach(r => insertCont.run(...r)))(contradictions);
 
   console.log('✅ Bank transactions, IP records, leads, and contradictions seeded.');
+}
+
+// ─── Seed General Diary ───────────────────────────────────────────────────────
+const gdCount = db.prepare('SELECT COUNT(*) as c FROM general_diary').get().c;
+if (gdCount === 0) {
+  const insertGD = db.prepare(`
+    INSERT INTO general_diary (id, gd_number, date_time, entry_type, person_name, mobile_number, description, location, officer_name, officer_id, station_id, related_fir_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const gdEntries = [
+    ['gd-001', 'GD/2026/04/001', '2026-04-22 08:30:00', 'Duty Start', 'SHO Kumar', null, 'Shift started. Roll call conducted. All staff present.', 'PS Sector 14', 'SHO Kumar', 'usr-3', 'stn-1', null],
+    ['gd-002', 'GD/2026/04/002', '2026-04-22 09:15:00', 'Complaint received', 'Sunita Devi', '9876543211', 'Complaint regarding lost wallet near Sector 14 market.', 'PS Sector 14', 'SHO Kumar', 'usr-3', 'stn-1', null],
+    ['gd-003', 'GD/2026/04/003', '2026-04-22 10:00:00', 'Departure (staff/visitor)', 'IO Singh', null, 'Leaving for investigation in Case-001 (Mobile Theft).', 'Sector 14 Market', 'Investigating Officer Singh', 'usr-2', 'stn-1', 'case-001'],
+    ['gd-004', 'GD/2026/04/004', '2026-04-22 11:30:00', 'Arrival (staff/visitor)', 'IO Singh', null, 'Returned from investigation. Statement of shopkeeper recorded.', 'PS Sector 14', 'Investigating Officer Singh', 'usr-2', 'stn-1', 'case-001'],
+    ['gd-005', 'GD/2026/04/005', '2026-04-22 13:00:00', 'File transfer', 'SHO Kumar', null, 'Case file Case-002 transferred to IO Singh for further investigation.', 'PS Sector 14', 'SHO Kumar', 'usr-3', 'stn-1', 'case-002'],
+  ];
+
+  db.transaction(rows => rows.forEach(r => insertGD.run(...r)))(gdEntries);
+  console.log('✅ General Diary seed data created.');
 }
 
 export default db;
